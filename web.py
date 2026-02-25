@@ -21,7 +21,7 @@ import numpy as np
 
 # 全局变量，用于存储最后推送时间
 last_push_time = {}
-INTERNAL_IP = "192.168.1.37"
+INTERNAL_IP = "192.168.1.129"
 # Flask 应用程序，用于提供 HTTP 访问
 app = Flask(__name__)
 
@@ -145,18 +145,18 @@ async def handler(websocket):
                             else:
                                 device_name = name_result.values[0]
                                 id_file = "cameras2.xlsx"
-                                df_id = pd.read_excel(id_file, dtype={"国标ID": str, "设备ID": int})
-                                id_result = df_id.loc[df_id["Name"] == device_name, ["国标ID", "设备ID"]]
+                                df_id = pd.read_excel(id_file, dtype={"国标ID": str})
+                                # 仅查询国标ID，不再查询设备ID
+                                id_result = df_id.loc[df_id["Name"] == device_name, ["国标ID"]]
                                 if id_result.empty:
-                                    print(f"设备名称 '{device_name}' 在 ID.xlsx 中未找到对应的国标ID和设备ID")
+                                    print(f"设备名称 '{device_name}' 在 ID.xlsx 中未找到对应的国标ID")
                                     gb_id = None
-                                    device_id = None
                                     continue
                                 else:
-                                    gb_id, device_id = id_result.values[0]
+                                    # 只解包出一个值：gb_id
+                                    gb_id = id_result.values[0][0]
                                     device_name = device_name.strip().lower()
-                                    if device_id is not None:
-                                        device_id = int(device_id)
+
                                     if gb_id is not None:
                                         if "." in gb_id:
                                             gb_id = "{:.0f}".format(float(gb_id))
@@ -169,15 +169,15 @@ async def handler(websocket):
                                     # 更新最后推送时间
                                     last_push_time[gb_id] = datetime.now()
                                     response = {
-                                        "name_result": device_name,
-                                        "deviceId": device_id,
-                                        "gbId": gb_id,
-                                        'eventTime': current_time,
-                                        'captureTime': current_time,
-                                        'type': dust_status,
-                                        'pictureUrl': file_path,
-                                        "conf": float(marked[0]),  # 将 float32 转换为 float,
-                                        'level': 3
+                                        "name_result": device_name,  # 设备名称 (从Excel中根据Code匹配到的Name)
+                                        "deviceId": nombre_base,  # 设备 Code (从文件名获取)
+                                        "gbId": gb_id,  # 国标 ID (从Excel中获取)
+                                        'eventTime': current_time,  # 事件发生时间
+                                        'captureTime': current_time,  # 抓拍时间
+                                        'type': dust_status,  # 报警类型
+                                        'pictureUrl': file_path,  # 图片 URL 地址
+                                        "conf": float(marked[0]),  # 置信度
+                                        'level': 3  # 报警等级 (固定为3)
                                     }
                                     print(f"准备发送响应消息: {response}")
                                     await websocket.send(json.dumps(response))
