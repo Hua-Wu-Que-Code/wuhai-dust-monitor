@@ -21,7 +21,7 @@ import numpy as np
 
 # 全局变量，用于存储最后推送时间
 last_push_time = {}
-INTERNAL_IP = "192.168.1.129"
+INTERNAL_IP = "192.168.1.81"
 # Flask 应用程序，用于提供 HTTP 访问
 app = Flask(__name__)
 
